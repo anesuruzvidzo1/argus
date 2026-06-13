@@ -3,18 +3,31 @@ from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
+from contextlib import asynccontextmanager
 import json
 import asyncio
 from decimal import Decimal
+from pathlib import Path
 
 from database import (
     create_or_get_session, insert_trace,
     get_sessions, get_session, get_traces, get_model_stats,
+    get_pool,
 )
 from redis_client import publish_trace, subscribe_session, subscribe_all
 from cost import calculate_cost
 
-app = FastAPI(title="Argus — LLM Observability")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    pool = await get_pool()
+    schema = (Path(__file__).parent / "schema.sql").read_text()
+    async with pool.acquire() as conn:
+        await conn.execute(schema)
+    yield
+
+
+app = FastAPI(title="Argus — LLM Observability", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
