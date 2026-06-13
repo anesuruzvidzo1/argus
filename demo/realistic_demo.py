@@ -19,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from wrapper.tracer import ArgusClient
 
 MODEL = "claude-haiku-4-5"
+ARGUS_URL = os.environ.get("ARGUS_URL", "http://localhost:8000")
 
 LINT_TOOL = {
     "name": "run_linter",
@@ -100,7 +101,7 @@ def banner(text):
 
 def run_code_review_agent():
     banner("Session 1 — Code Review Agent")
-    client = ArgusClient(session_label="Code Review Agent")
+    client = ArgusClient(tracer_url=ARGUS_URL, session_label="Code Review Agent")
     print(f"Session ID: {client.session_id}\n")
 
     buggy_code = '''
@@ -174,7 +175,7 @@ def calculate_discount(price, discount_pct, user_type):
 
 def run_support_bot():
     banner("Session 2 — Customer Support Bot")
-    client = ArgusClient(session_label="Customer Support Bot")
+    client = ArgusClient(tracer_url=ARGUS_URL, session_label="Customer Support Bot")
     print(f"Session ID: {client.session_id}\n")
 
     conversation = [
@@ -247,7 +248,7 @@ def run_support_bot():
 
 def run_sql_assistant():
     banner("Session 3 — SQL Assistant")
-    client = ArgusClient(session_label="SQL Assistant")
+    client = ArgusClient(tracer_url=ARGUS_URL, session_label="SQL Assistant")
     print(f"Session ID: {client.session_id}\n")
 
     # Turn 1: Convert NL to SQL
@@ -307,7 +308,7 @@ def run_sql_assistant():
 
 def run_error_session():
     banner("Session 4 — Deployment Pipeline Agent (with error)")
-    client = ArgusClient(session_label="Deployment Pipeline Agent")
+    client = ArgusClient(tracer_url=ARGUS_URL, session_label="Deployment Pipeline Agent")
     print(f"Session ID: {client.session_id}\n")
 
     # Turn 1: Normal call
@@ -364,12 +365,13 @@ def main():
 
     session_ids.append(run_error_session())
 
+    base = ARGUS_URL.replace("https://backend-production-1b09.up.railway.app", "https://argus-dashboard-phi.vercel.app").replace("http://localhost:8000", "http://localhost:3000")
     print("\n" + "═" * 50)
     print("  All sessions complete. Open the dashboard:")
-    print("  http://localhost:3000/dashboard")
+    print(f"  {base}/dashboard")
     print("═" * 50 + "\n")
     for sid in session_ids:
-        print(f"  → http://localhost:3000/dashboard/sessions/{sid}")
+        print(f"  → {base}/dashboard/sessions/{sid}")
     print()
 
 
