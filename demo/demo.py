@@ -1,8 +1,19 @@
 """
-Run: ANTHROPIC_API_KEY=sk-ant-... python demo/demo.py
+Run: python demo/demo.py
+Requires ANTHROPIC_API_KEY in ~/Desktop/Projects/argus/.env or environment.
 """
 import sys
 import os
+from pathlib import Path
+
+# Load .env from project root if it exists
+env_path = Path(__file__).parent.parent / ".env"
+if env_path.exists():
+    for line in env_path.read_text().splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            k, v = line.split("=", 1)
+            os.environ.setdefault(k.strip(), v.strip())
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 

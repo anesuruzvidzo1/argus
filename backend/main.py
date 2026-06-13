@@ -9,7 +9,7 @@ from decimal import Decimal
 
 from database import (
     create_or_get_session, insert_trace,
-    get_sessions, get_session, get_traces,
+    get_sessions, get_session, get_traces, get_model_stats,
 )
 from redis_client import publish_trace, subscribe_session, subscribe_all
 from cost import calculate_cost
@@ -89,6 +89,12 @@ async def create_trace(payload: TracePayload):
 async def list_sessions():
     sessions = await get_sessions()
     return [_serialize(s) for s in sessions]
+
+
+@app.get("/stats/models")
+async def model_stats():
+    rows = await get_model_stats()
+    return [_serialize(r) for r in rows]
 
 
 @app.get("/sessions/{session_id}")

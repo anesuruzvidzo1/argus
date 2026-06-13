@@ -87,3 +87,25 @@ async def get_traces(session_id: str) -> list:
             session_id
         )
         return [dict(r) for r in rows]
+
+
+async def get_model_stats() -> list:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT
+                model,
+                COUNT(*)                                             AS total_calls,
+                SUM(cost_usd)                                        AS total_cost_usd,
+                SUM(input_tokens)                                    AS total_input_tokens,
+                SUM(output_tokens)                                   AS total_output_tokens,
+                AVG(latency_ms)                                      AS avg_latency_ms,
+                SUM(CASE WHEN NOT success THEN 1 ELSE 0 END)        AS error_count
+            FROM traces
+            WHERE model != 'init'
+            GROUP BY model
+            ORDER BY total_cost_usd DESC
+            """
+        )
+        return [dict(r) for r in rows]

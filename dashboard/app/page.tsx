@@ -1,118 +1,234 @@
-"use client";
-
-import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Activity,
+  DollarSign,
+  Zap,
+  AlertCircle,
+  ArrowRight,
+  Terminal,
+  BarChart3,
+  Eye,
+} from "lucide-react";
 
-interface Session {
-  id: string;
-  created_at: string;
-  label: string | null;
-  trace_count: number;
-  total_cost_usd: number;
-  total_input_tokens: number;
-  total_output_tokens: number;
-  total_latency_ms: number;
-  error_count: number;
-}
+const features = [
+  {
+    icon: Activity,
+    title: "Real-time traces",
+    description:
+      "Every API call is captured the moment it happens. Watch your agent work live, call by call.",
+  },
+  {
+    icon: DollarSign,
+    title: "Cost tracking",
+    description:
+      "Know exactly what every session costs. Per-call breakdown and cumulative session totals across all models.",
+  },
+  {
+    icon: Zap,
+    title: "Latency monitoring",
+    description:
+      "Track response times per call and per model. Identify which parts of your agent are slow.",
+  },
+  {
+    icon: AlertCircle,
+    title: "Error visibility",
+    description:
+      "Every failure is logged with type, message, and context. Stop guessing why your agent broke in production.",
+  },
+];
 
-function formatCost(cost: number): string {
-  if (cost === 0) return "$0.00";
-  if (cost < 0.0001) return `$${(cost * 1_000_000).toFixed(1)}µ`;
-  if (cost < 0.01) return `$${(cost * 1000).toFixed(3)}m`;
-  return `$${cost.toFixed(4)}`;
-}
+const steps = [
+  {
+    step: "01",
+    title: "Wrap your client",
+    description: "Replace anthropic.Anthropic() with ArgusClient(). One line change, nothing else breaks.",
+    code: `from argus import ArgusClient\n\nclient = ArgusClient(session_label="My App")`,
+  },
+  {
+    step: "02",
+    title: "Use it normally",
+    description: "Call the API exactly as you always have. Argus captures everything silently in the background.",
+    code: `response = client.messages.create(\n  model="claude-opus-4-8",\n  messages=[...]\n)`,
+  },
+  {
+    step: "03",
+    title: "Open the dashboard",
+    description: "See every call, cost, latency, and error in real time. No configuration needed.",
+    code: `# Open your dashboard\n# Every trace appears instantly`,
+  },
+];
 
-function formatLatency(ms: number): string {
-  return ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`;
-}
-
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  if (diff < 5000) return "just now";
-  if (diff < 60_000) return `${Math.floor(diff / 1000)}s ago`;
-  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
-  return `${Math.floor(diff / 3_600_000)}h ago`;
-}
-
-export default function Home() {
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchSessions = useCallback(async () => {
-    const res = await fetch("/api/backend/sessions");
-    if (res.ok) {
-      setSessions(await res.json());
-    }
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    fetchSessions();
-
-    const source = new EventSource("/api/backend/stream");
-    source.onmessage = () => fetchSessions();
-    source.onerror = () => source.close();
-
-    return () => source.close();
-  }, [fetchSessions]);
-
+export default function LandingPage() {
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold">Sessions</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          Every session started with <code className="text-purple-400">ArgusClient</code> appears here in real time.
-        </p>
-      </div>
-
-      {loading ? (
-        <p className="text-gray-600 text-sm">Loading...</p>
-      ) : sessions.length === 0 ? (
-        <div className="border border-dashed border-gray-800 rounded-lg p-12 text-center">
-          <p className="text-gray-500 mb-2">No sessions yet</p>
-          <p className="text-gray-700 text-sm">
-            Run <code className="text-purple-400">python demo/demo.py</code> to generate your first traces
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {sessions.map((s) => (
-            <Link
-              key={s.id}
-              href={`/sessions/${s.id}`}
-              className="block border border-gray-800 rounded-lg px-5 py-4 hover:border-purple-800 hover:bg-gray-900/50 transition-all"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-gray-200 font-medium">
-                    {s.label || s.id.slice(0, 8) + "…"}
-                  </span>
-                  {s.error_count > 0 && (
-                    <span className="text-xs bg-red-950 text-red-400 border border-red-900 px-2 py-0.5 rounded-full">
-                      {s.error_count} error{s.error_count > 1 ? "s" : ""}
-                    </span>
-                  )}
-                </div>
-                <span className="text-gray-600 text-xs">{timeAgo(s.created_at)}</span>
-              </div>
-              <div className="flex items-center gap-6 text-xs text-gray-500">
-                <span>
-                  <span className="text-gray-300 font-medium">{s.trace_count}</span> call{s.trace_count !== 1 ? "s" : ""}
-                </span>
-                <span>
-                  <span className="text-gray-300">{(s.total_input_tokens + s.total_output_tokens).toLocaleString()}</span> tokens
-                </span>
-                <span className="text-yellow-500 font-medium">{formatCost(s.total_cost_usd)}</span>
-                {s.trace_count > 0 && (
-                  <span>
-                    avg <span className="text-gray-300">{formatLatency(Math.round(s.total_latency_ms / s.trace_count))}</span>
-                  </span>
-                )}
-              </div>
+    <div className="min-h-screen bg-background">
+      {/* Nav */}
+      <nav className="border-b border-border/50 px-6 py-4">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Eye className="w-5 h-5 text-violet-400" />
+            <span className="font-bold tracking-tight">Argus</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link href="/dashboard">
+              <Button variant="ghost" size="sm">
+                Dashboard
+              </Button>
             </Link>
+            <Link href="/dashboard">
+              <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white">
+                Get started
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <section className="max-w-6xl mx-auto px-6 pt-24 pb-20 text-center">
+        <Badge
+          variant="outline"
+          className="mb-6 border-violet-500/30 text-violet-400 bg-violet-500/10"
+        >
+          Open source · Self-hostable · Anthropic native
+        </Badge>
+        <h1 className="text-5xl font-bold tracking-tight text-foreground mb-6 leading-tight">
+          See exactly what your
+          <br />
+          <span className="text-violet-400">AI agent is doing</span>
+        </h1>
+        <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
+          Argus gives engineering teams real-time visibility into every Claude API call —
+          what it cost, how long it took, what failed, and why. Know what your AI is
+          doing in production before your users notice something is wrong.
+        </p>
+        <div className="flex items-center justify-center gap-4">
+          <Link href="/dashboard">
+            <Button
+              size="lg"
+              className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
+            >
+              Open dashboard <ArrowRight className="w-4 h-4" />
+            </Button>
+          </Link>
+          <a
+            href="https://github.com/anesuruzvidzo1/argus"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Button size="lg" variant="outline" className="gap-2">
+              <Terminal className="w-4 h-4" /> View on GitHub
+            </Button>
+          </a>
+        </div>
+
+        {/* Stats row */}
+        <div className="mt-20 grid grid-cols-3 gap-8 max-w-lg mx-auto">
+          {[
+            { value: "< 2ms", label: "Tracing overhead" },
+            { value: "4", label: "Models supported" },
+            { value: "100%", label: "Open source" },
+          ].map((stat) => (
+            <div key={stat.label}>
+              <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+              <p className="text-sm text-muted-foreground mt-1">{stat.label}</p>
+            </div>
           ))}
         </div>
-      )}
+      </section>
+
+      {/* How it works */}
+      <section className="border-t border-border/50 bg-card/30">
+        <div className="max-w-6xl mx-auto px-6 py-20">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl font-bold tracking-tight mb-3">
+              Three steps to full visibility
+            </h2>
+            <p className="text-muted-foreground">
+              No infrastructure changes. Works with your existing Claude setup.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            {steps.map((s) => (
+              <Card key={s.step} className="bg-card border-border/50">
+                <CardContent className="pt-6">
+                  <span className="text-xs font-mono text-violet-400 font-bold">
+                    {s.step}
+                  </span>
+                  <h3 className="font-semibold mt-2 mb-1">{s.title}</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {s.description}
+                  </p>
+                  <pre className="bg-background rounded-md p-3 text-xs font-mono text-muted-foreground overflow-x-auto border border-border/50">
+                    {s.code}
+                  </pre>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="max-w-6xl mx-auto px-6 py-20">
+        <div className="text-center mb-14">
+          <h2 className="text-3xl font-bold tracking-tight mb-3">
+            Everything you need to understand your agent
+          </h2>
+          <p className="text-muted-foreground">
+            Purpose-built for teams running Claude in production — no wrappers, no vendor lock-in.
+          </p>
+        </div>
+        <div className="grid md:grid-cols-2 gap-6">
+          {features.map((f) => (
+            <Card key={f.title} className="bg-card border-border/50">
+              <CardContent className="pt-6 flex gap-4">
+                <div className="w-9 h-9 rounded-md bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+                  <f.icon className="w-4 h-4 text-violet-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-1">{f.title}</h3>
+                  <p className="text-sm text-muted-foreground">{f.description}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="border-t border-border/50">
+        <div className="max-w-6xl mx-auto px-6 py-20 text-center">
+          <BarChart3 className="w-10 h-10 text-violet-400 mx-auto mb-4" />
+          <h2 className="text-3xl font-bold tracking-tight mb-3">
+            Start tracing in under a minute
+          </h2>
+          <p className="text-muted-foreground mb-8">
+            Self-host with Docker Compose or connect to any running instance.
+          </p>
+          <Link href="/dashboard">
+            <Button
+              size="lg"
+              className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
+            >
+              Open dashboard <ArrowRight className="w-4 h-4" />
+            </Button>
+          </Link>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-border/50 px-6 py-8">
+        <div className="max-w-6xl mx-auto flex items-center justify-between text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <Eye className="w-4 h-4 text-violet-400" />
+            <span>Argus</span>
+          </div>
+          <p>Open source LLM observability for Anthropic SDK users.</p>
+        </div>
+      </footer>
     </div>
   );
 }
