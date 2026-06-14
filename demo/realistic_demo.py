@@ -18,7 +18,8 @@ if env_path.exists():
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from wrapper.tracer import ArgusClient
 
-MODEL = "claude-haiku-4-5"
+HAIKU = "claude-haiku-4-5"
+SONNET = "claude-sonnet-4-6"
 ARGUS_URL = os.environ.get("ARGUS_URL", "http://localhost:8000")
 
 LINT_TOOL = {
@@ -113,10 +114,10 @@ def calculate_discount(price, discount_pct, user_type):
     return price - discount
 '''
 
-    # Turn 1: Identify bugs
+    # Turn 1: Identify bugs — sonnet for the detailed analysis call
     print("→ Turn 1: Identifying bugs in the function...")
     r1 = client.messages.create(
-        model=MODEL,
+        model=SONNET,
         max_tokens=300,
         messages=[{
             "role": "user",
@@ -128,7 +129,7 @@ def calculate_discount(price, discount_pct, user_type):
     # Turn 2: Lint it with tool use
     print("\n→ Turn 2: Running linter via tool call...")
     r2 = client.messages.create(
-        model=MODEL,
+        model=HAIKU,
         max_tokens=300,
         tools=[LINT_TOOL],
         messages=[
@@ -143,7 +144,7 @@ def calculate_discount(price, discount_pct, user_type):
     # Turn 3: Apply the fix with tool use
     print("\n→ Turn 3: Applying fix via tool call...")
     r3 = client.messages.create(
-        model=MODEL,
+        model=HAIKU,
         max_tokens=400,
         tools=[APPLY_FIX_TOOL],
         messages=[{
@@ -159,7 +160,7 @@ def calculate_discount(price, discount_pct, user_type):
     # Turn 4: Streamed summary
     print("\n→ Turn 4: Generating review summary (streamed)...")
     with client.messages.stream(
-        model=MODEL,
+        model=HAIKU,
         max_tokens=200,
         messages=[{"role": "user", "content": "Write a 2-sentence code review summary for a Slack message. Mention the file fixed and the bug type."}],
     ) as stream:
@@ -188,7 +189,7 @@ def run_support_bot():
     # Turn 1: Understand and look up order
     print("→ Turn 1: Triaging support request and looking up order...")
     r1 = client.messages.create(
-        model=MODEL,
+        model=HAIKU,
         max_tokens=350,
         tools=[LOOKUP_ORDER_TOOL],
         system="You are a helpful customer support agent. Always look up orders before responding. Be empathetic and efficient.",
@@ -215,7 +216,7 @@ def run_support_bot():
     # Turn 2: Draft response to customer
     print("\n→ Turn 2: Drafting response with order context...")
     r2 = client.messages.create(
-        model=MODEL,
+        model=HAIKU,
         max_tokens=300,
         tools=[LOOKUP_ORDER_TOOL],
         system="You are a helpful customer support agent. Always look up orders before responding. Be empathetic and efficient.",
@@ -227,7 +228,7 @@ def run_support_bot():
     # Turn 3: Close the ticket
     print("\n→ Turn 3: Closing ticket and issuing credit...")
     r3 = client.messages.create(
-        model=MODEL,
+        model=HAIKU,
         max_tokens=300,
         tools=[UPDATE_TICKET_TOOL],
         messages=[{
@@ -254,7 +255,7 @@ def run_sql_assistant():
     # Turn 1: Convert NL to SQL
     print("→ Turn 1: Converting natural language to SQL...")
     r1 = client.messages.create(
-        model=MODEL,
+        model=HAIKU,
         max_tokens=300,
         tools=[QUERY_DB_TOOL],
         system="You are a SQL assistant. Convert user questions into SQL queries and execute them. Schema: orders(id, customer_id, amount, status, created_at), customers(id, name, email, tier).",
@@ -269,10 +270,10 @@ def run_sql_assistant():
                 print(f"   Tool called: {block.name}")
                 print(f"   SQL: {block.input.get('sql', '')[:100]}...")
 
-    # Turn 2: Explain the results (streamed)
+    # Turn 2: Explain the results (streamed) — sonnet for the business narrative
     print("\n→ Turn 2: Explaining query results (streamed)...")
     with client.messages.stream(
-        model=MODEL,
+        model=SONNET,
         max_tokens=200,
         messages=[{
             "role": "user",
@@ -286,7 +287,7 @@ def run_sql_assistant():
     # Turn 3: Follow-up query
     print("→ Turn 3: Running follow-up query...")
     r3 = client.messages.create(
-        model=MODEL,
+        model=HAIKU,
         max_tokens=300,
         tools=[QUERY_DB_TOOL],
         messages=[{
@@ -314,7 +315,7 @@ def run_error_session():
     # Turn 1: Normal call
     print("→ Turn 1: Checking deployment readiness...")
     r1 = client.messages.create(
-        model=MODEL,
+        model=HAIKU,
         max_tokens=150,
         messages=[{"role": "user", "content": "List 3 checks a deployment pipeline should run before pushing to production. One sentence each."}],
     )
@@ -334,7 +335,7 @@ def run_error_session():
     # Turn 3: Recovery call
     print("\n→ Turn 3: Recovery — retrying with correct model...")
     r3 = client.messages.create(
-        model=MODEL,
+        model=HAIKU,
         max_tokens=150,
         messages=[{"role": "user", "content": "Deployment succeeded. Write a one-sentence Slack notification for the engineering channel."}],
     )
@@ -347,9 +348,10 @@ def run_error_session():
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
+    dashboard_base = "https://argus-dashboard-phi.vercel.app" if "railway.app" in ARGUS_URL else "http://localhost:3000"
     print("\nArgus Realistic Demo")
     print("Running 4 production-style agent sessions...\n")
-    print("Keep the dashboard open at http://localhost:3000/dashboard")
+    print(f"Keep the dashboard open at {dashboard_base}/dashboard")
     print("Watch sessions appear in real time as each one runs.\n")
 
     session_ids = []

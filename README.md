@@ -10,23 +10,46 @@ Most observability tools for LLMs either require LangChain or only support OpenA
 
 Argus fills that gap. One wrapper class, zero framework dependencies.
 
-## Usage
+## Getting started
+
+Clone the repo and start the full stack:
+
+```bash
+git clone https://github.com/anesuruzvidzo1/argus
+cd argus
+cp .env.example .env
+```
+
+Open `.env` and set your `ANTHROPIC_API_KEY`. The database and Redis URLs are pre-filled for the Docker setup — leave them as-is.
+
+```bash
+docker compose up
+```
+
+Opens at `http://localhost:3000`. PostgreSQL, Redis, the backend, and the dashboard all start together.
+
+## Integrating with your code
+
+Copy `wrapper/tracer.py` into your project. It has two dependencies: `anthropic` and `httpx`.
 
 ```python
-from argus import ArgusClient
+from tracer import ArgusClient
 
-client = ArgusClient(session_label="My App")
+client = ArgusClient(
+    session_label="My App",
+    tracer_url="http://localhost:8000",  # or your deployed backend URL
+)
 
 response = client.messages.create(
-    model="claude-opus-4-8",
+    model="claude-haiku-4-5",
     max_tokens=1024,
     messages=[{"role": "user", "content": "..."}],
 )
 ```
 
-That's it. `ArgusClient` is a transparent wrapper around `anthropic.Anthropic()`. Every call you make gets traced automatically — tokens, cost, latency, tool calls, errors. Your code doesn't change.
+`ArgusClient` is a drop-in replacement for `anthropic.Anthropic()`. Every call gets traced automatically — tokens, cost, latency, tool calls, errors. Your application code doesn't change.
 
-Streaming works too:
+Streaming works the same way:
 
 ```python
 with client.messages.stream(model="claude-haiku-4-5", max_tokens=256, messages=[...]) as stream:
@@ -34,22 +57,34 @@ with client.messages.stream(model="claude-haiku-4-5", max_tokens=256, messages=[
         print(text, end="", flush=True)
 ```
 
-## Self-hosting
-
-```bash
-git clone https://github.com/anesuruzvidzo1/argus
-cd argus
-cp .env.example .env  # add your ANTHROPIC_API_KEY
-docker compose up
-```
-
-Opens at `http://localhost:3000`. PostgreSQL, Redis, the FastAPI backend, and the Next.js dashboard all start together.
-
-To verify everything is working:
+To verify everything is working end-to-end:
 
 ```bash
 python3 demo/realistic_demo.py
 ```
+
+## Deploying your own backend
+
+If you want to run Argus in production for your own project, deploy the backend to Railway or Render (both support Docker). Managed PostgreSQL and Redis are available on both platforms.
+
+Set these environment variables on your backend deployment:
+
+```
+ANTHROPIC_API_KEY=sk-ant-...
+DATABASE_URL=postgresql://...
+REDIS_URL=redis://...
+```
+
+Then point your `ArgusClient` at the deployed backend:
+
+```python
+client = ArgusClient(
+    session_label="Production App",
+    tracer_url="https://your-backend.up.railway.app",
+)
+```
+
+Deploy the dashboard separately to Vercel. Set `NEXT_PUBLIC_BACKEND_URL` to your Railway backend URL.
 
 ## What gets tracked
 
