@@ -281,10 +281,10 @@ def run_support_bot():
 
     CACHED_SUPPORT_SYSTEM = [{"type": "text", "text": SUPPORT_SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}]
 
-    # Turn 1: Understand and look up order
+    # Turn 1: Understand and look up order — Sonnet carries the cached system prompt
     print("→ Turn 1: Triaging support request and looking up order...")
     r1 = client.messages.create(
-        model=HAIKU,
+        model=SONNET,
         max_tokens=350,
         tools=[LOOKUP_ORDER_TOOL],
         system=CACHED_SUPPORT_SYSTEM,
@@ -308,10 +308,10 @@ def run_support_bot():
         ]
     })
 
-    # Turn 2: Draft response to customer — system prompt read from cache here
+    # Turn 2: Draft response — system prompt served from cache at 10% cost
     print("\n→ Turn 2: Drafting response with order context...")
     r2 = client.messages.create(
-        model=HAIKU,
+        model=SONNET,
         max_tokens=300,
         tools=[LOOKUP_ORDER_TOOL],
         system=CACHED_SUPPORT_SYSTEM,
@@ -349,10 +349,10 @@ def run_sql_assistant():
 
     CACHED_SQL_SYSTEM = [{"type": "text", "text": SQL_SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}]
 
-    # Turn 1: Convert NL to SQL
+    # Turn 1: Convert NL to SQL — Sonnet carries the cached system prompt
     print("→ Turn 1: Converting natural language to SQL...")
     r1 = client.messages.create(
-        model=HAIKU,
+        model=SONNET,
         max_tokens=300,
         tools=[QUERY_DB_TOOL],
         system=CACHED_SQL_SYSTEM,
@@ -381,10 +381,10 @@ def run_sql_assistant():
             print(text, end="", flush=True)
     print("\n")
 
-    # Turn 3: Follow-up query — system prompt read from cache here
+    # Turn 3: Follow-up query — system prompt served from cache at 10% cost
     print("→ Turn 3: Running follow-up query...")
     r3 = client.messages.create(
-        model=HAIKU,
+        model=SONNET,
         max_tokens=300,
         tools=[QUERY_DB_TOOL],
         system=CACHED_SQL_SYSTEM,
