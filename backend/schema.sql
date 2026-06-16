@@ -43,3 +43,6 @@ CREATE INDEX IF NOT EXISTS idx_traces_session_id ON traces(session_id);
 CREATE INDEX IF NOT EXISTS idx_traces_created_at ON traces(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_tool_calls_trace_id ON tool_calls(trace_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_created_at ON sessions(created_at DESC);
+
+ALTER TABLE traces ADD COLUMN IF NOT EXISTS cache_read_input_tokens INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE traces ADD COLUMN IF NOT EXISTS cache_creation_input_tokens INTEGER NOT NULL DEFAULT 0;

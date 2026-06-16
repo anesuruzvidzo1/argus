@@ -49,6 +49,8 @@ class TracePayload(BaseModel):
     model: str
     input_tokens: int
     output_tokens: int
+    cache_read_input_tokens: int = 0
+    cache_creation_input_tokens: int = 0
     latency_ms: int
     success: bool = True
     error_type: Optional[str] = None
@@ -61,7 +63,13 @@ class TracePayload(BaseModel):
 
 @app.post("/traces", status_code=201)
 async def create_trace(payload: TracePayload):
-    cost = calculate_cost(payload.model, payload.input_tokens, payload.output_tokens)
+    cost = calculate_cost(
+        payload.model,
+        payload.input_tokens,
+        payload.output_tokens,
+        payload.cache_read_input_tokens,
+        payload.cache_creation_input_tokens,
+    )
 
     await create_or_get_session(payload.session_id, payload.session_label)
 
@@ -70,6 +78,8 @@ async def create_trace(payload: TracePayload):
         "model": payload.model,
         "input_tokens": payload.input_tokens,
         "output_tokens": payload.output_tokens,
+        "cache_read_input_tokens": payload.cache_read_input_tokens,
+        "cache_creation_input_tokens": payload.cache_creation_input_tokens,
         "cost_usd": cost,
         "latency_ms": payload.latency_ms,
         "success": payload.success,

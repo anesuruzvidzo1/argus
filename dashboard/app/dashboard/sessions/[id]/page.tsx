@@ -34,6 +34,8 @@ interface Trace {
   model: string;
   input_tokens: number;
   output_tokens: number;
+  cache_read_input_tokens: number;
+  cache_creation_input_tokens: number;
   cost_usd: number;
   latency_ms: number;
   success: boolean;
@@ -173,6 +175,9 @@ export default function SessionDetailPage({
       ? session.total_latency_ms / session.trace_count
       : 0;
 
+  const totalCacheReadTokens = traces.reduce((sum, t) => sum + (t.cache_read_input_tokens || 0), 0);
+  const totalCacheCreationTokens = traces.reduce((sum, t) => sum + (t.cache_creation_input_tokens || 0), 0);
+
   const chartData = traces.map((t, i) => ({
     call: `#${i + 1}`,
     latency: t.latency_ms,
@@ -236,6 +241,21 @@ export default function SessionDetailPage({
           accent={session.error_count > 0}
         />
       </div>
+
+      {/* Cache banner */}
+      {totalCacheReadTokens > 0 && (
+        <div className="flex items-center gap-2.5 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-4 py-3">
+          <Zap className="w-3.5 h-3.5 shrink-0" />
+          <span>
+            Prompt cache active &middot;{" "}
+            <span className="font-mono font-semibold">{totalCacheReadTokens.toLocaleString()}</span> tokens served from cache
+            {totalCacheCreationTokens > 0 && (
+              <> &middot; <span className="font-mono font-semibold">{totalCacheCreationTokens.toLocaleString()}</span> written</>
+            )}
+            {" "}&middot; cache reads billed at <span className="font-semibold">10%</span> of standard input rate
+          </span>
+        </div>
+      )}
 
       {/* Latency chart */}
       {traces.length > 0 && (
@@ -325,9 +345,22 @@ export default function SessionDetailPage({
                           </Badge>
                         </TableCell>
                         <TableCell className="font-mono text-xs text-muted-foreground">
-                          {trace.input_tokens.toLocaleString()}
-                          <span className="text-border mx-1">→</span>
-                          {trace.output_tokens.toLocaleString()}
+                          <div>
+                            {trace.input_tokens.toLocaleString()}
+                            <span className="text-border mx-1">→</span>
+                            {trace.output_tokens.toLocaleString()}
+                          </div>
+                          {trace.cache_read_input_tokens > 0 && (
+                            <div className="text-emerald-400 mt-0.5 flex items-center gap-1">
+                              <Zap className="w-2.5 h-2.5" />
+                              {trace.cache_read_input_tokens.toLocaleString()} cached · 90% off
+                            </div>
+                          )}
+                          {trace.cache_creation_input_tokens > 0 && (
+                            <div className="text-amber-400/70 mt-0.5 text-[10px]">
+                              ↑ cache written
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell className="font-mono text-sm text-violet-400">
                           {fmt$(trace.cost_usd)}

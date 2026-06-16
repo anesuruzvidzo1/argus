@@ -11,7 +11,13 @@ PRICING: dict[str, dict[str, float]] = {
 _FALLBACK = {"input": 3.00, "output": 15.00}
 
 
-def calculate_cost(model: str, input_tokens: int, output_tokens: int) -> float:
+def calculate_cost(
+    model: str,
+    input_tokens: int,
+    output_tokens: int,
+    cache_read_input_tokens: int = 0,
+    cache_creation_input_tokens: int = 0,
+) -> float:
     pricing = PRICING.get(model)
     if pricing is None:
         for key, val in PRICING.items():
@@ -23,4 +29,6 @@ def calculate_cost(model: str, input_tokens: int, output_tokens: int) -> float:
 
     input_cost = (input_tokens / 1_000_000) * pricing["input"]
     output_cost = (output_tokens / 1_000_000) * pricing["output"]
-    return round(input_cost + output_cost, 8)
+    cache_read_cost = (cache_read_input_tokens / 1_000_000) * pricing["input"] * 0.10
+    cache_creation_cost = (cache_creation_input_tokens / 1_000_000) * pricing["input"] * 1.25
+    return round(input_cost + output_cost + cache_read_cost + cache_creation_cost, 8)

@@ -31,13 +31,16 @@ async def insert_trace(trace: dict) -> str:
         async with conn.transaction():
             row = await conn.fetchrow(
                 """INSERT INTO traces
-                   (session_id, model, input_tokens, output_tokens, cost_usd,
-                    latency_ms, success, error_type, error_message, stop_reason,
-                    tool_call_count, metadata)
-                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                   (session_id, model, input_tokens, output_tokens,
+                    cache_read_input_tokens, cache_creation_input_tokens,
+                    cost_usd, latency_ms, success, error_type, error_message,
+                    stop_reason, tool_call_count, metadata)
+                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
                    RETURNING id""",
                 trace["session_id"], trace["model"],
                 trace["input_tokens"], trace["output_tokens"],
+                trace.get("cache_read_input_tokens", 0),
+                trace.get("cache_creation_input_tokens", 0),
                 trace["cost_usd"], trace["latency_ms"],
                 trace["success"], trace.get("error_type"), trace.get("error_message"),
                 trace.get("stop_reason"), trace.get("tool_call_count", 0),
