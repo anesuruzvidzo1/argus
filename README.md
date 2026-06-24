@@ -57,7 +57,7 @@ with client.messages.stream(model="claude-haiku-4-5", max_tokens=256, messages=[
         print(text, end="", flush=True)
 ```
 
-To verify everything is working end-to-end:
+To verify everything is working end to end:
 
 ```bash
 python3 demo/realistic_demo.py
@@ -103,7 +103,7 @@ The dashboard gives you an overview across all sessions, a per-session trace vie
 ```
 Your app → ArgusClient → Anthropic API
                  ↓
-           POST /traces (async, fire-and-forget)
+           POST /traces (async, fire and forget)
                  ↓
          FastAPI backend → PostgreSQL
                  ↓
@@ -118,9 +118,9 @@ The tracer posts traces in the background with a short timeout and swallows all 
 
 Redis sits between the backend and dashboard for fan-out. Multiple viewers can watch the same session simultaneously without the backend holding a connection per user.
 
-SSE instead of WebSockets because the dashboard only needs server-to-client push. WebSockets add bidirectional overhead that this use case doesn't need.
+SSE instead of WebSockets because the dashboard only needs server to client push. WebSockets add bidirectional overhead that this use case doesn't need.
 
-asyncpg instead of SQLAlchemy because trace inserts are high-frequency writes against a stable schema. The ORM abstraction adds overhead without benefit here.
+asyncpg instead of SQLAlchemy because trace inserts are high frequency writes against a stable schema. The ORM abstraction adds overhead without benefit here.
 
 ## Stack
 
